@@ -170,11 +170,34 @@ Kev also trains and serves on Gemma 4 E2B and E4B (`google/gemma-4-E2B`, `google
 | Kev-Gemma4-E2B, 1 epoch | Gemma-4-E2B | 0.794 | 0.569 |
 | Kev-0.8B base recipe, 2 epochs (`q35-08b/00-trial-0`) | Qwen3.5-0.8B-Base | 0.817 | 0.622 |
 
+![Kev playground serving Kev-Gemma4-E2B](docs/gemma4-playground.png)
+
+Use it the way you use any Kev checkpoint: pass its Hub id to `--run`. The API, the TypeSafe SDK and the playground don't change.
+
 ```bash
+# the server (first run downloads Gemma 4 E2B, about 10 GB, and the adapter)
 uv run --extra serve python -m kev.serve --run JohnP1/kev-gemma4-e2b --port 8009
+
+# the playground, in another terminal (it proxies to :8009)
+cd playground && npm install && npm run dev -- -p 3001
+
+# score it on a frozen suite, or on your own labelled rows (--data)
+uv run python -m kev.benchmark --run JohnP1/kev-gemma4-e2b --suite evals/v4/transfer-v4 --out runs/gemma4-transfer
 ```
 
-Gemma 4 is attention-only, so on Apple Silicon it runs on PyTorch MPS, not MLX. The train command is in [Training](#training).
+```python
+from typesafe_sdk import Choice, TypeSafeClient
+
+client = TypeSafeClient(api_key="local", base_url="http://127.0.0.1:8009", model="kev-latest")
+r = client.system_one(
+    state="注文した靴が2週間遅れて届き、サイズも間違っていました。",   # Gemma reads non-English tickets
+    questions={"team": Choice(instructions="Which team should handle this?",
+                              criteria={"returns": None, "shipping": None, "billing": None})},
+)
+print(r.choices["team"].choice, r.choices["team"].probabilities)
+```
+
+To fine-tune on your own data, start from this checkpoint with `--init_from JohnP1/kev-gemma4-e2b --base google/gemma-4-E2B --base_revision d29ff6b45f081a49ee2733a859c9c9c2d95d1a6f`, exactly as in [Fine-tuning on your own data](#fine-tuning-on-your-own-data). The recipe that trained it from the base is in [Training](#training). Gemma 4 is attention-only, so on Apple Silicon it runs on PyTorch MPS, not MLX. Its checkpoint loads in fp32 by default, the exact path; the server defaults to bf16.
 
 ## API
 
