@@ -170,7 +170,9 @@ Kev also trains and serves on Gemma 4 E2B and E4B (`google/gemma-4-E2B`, `google
 | Kev-Gemma4-E2B, 1 epoch | Gemma-4-E2B | 0.794 | 0.569 |
 | Kev-0.8B base recipe, 2 epochs (`q35-08b/00-trial-0`) | Qwen3.5-0.8B-Base | 0.817 | 0.622 |
 
-![Kev playground serving Kev-Gemma4-E2B](docs/gemma4-playground.png)
+Here it is in the playground on an M1 Max: a support ticket, packed vs separate, option permutations, the same ticket in Japanese, the isolation probe, and delimiter-forgery attempts with Qwen and Gemma tokens.
+
+![Kev playground serving Kev-Gemma4-E2B](docs/gemma4-demo.gif)
 
 Use it the way you use any Kev checkpoint: pass its Hub id to `--run`. The API, the TypeSafe SDK and the playground don't change.
 
