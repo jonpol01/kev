@@ -161,6 +161,21 @@ The original [Kev-0.5B](https://huggingface.co/jaredpalmer/kev-0.5b) used Qwen2.
 
 </details>
 
+### Gemma 4 (experimental)
+
+Kev also trains and serves on Gemma 4 E2B and E4B (`google/gemma-4-E2B`, `google/gemma-4-E4B`). Gemma's tokenizer has none of the Qwen delimiter tokens, so it uses its reserved `<unused0>`–`<unused4>` rows and a leading `<bos>`. Its sliding-window layers get their own version of the packed mask, and only the text model is loaded. One prototype checkpoint exists, [JohnP1/kev-gemma4-e2b](https://huggingface.co/JohnP1/kev-gemma4-e2b), trained for one epoch of the base recipe on a single L4. It works end to end but is not yet competitive:
+
+| Model | Base | Accuracy: Trained Sources (dev) | Accuracy: New Sources (dev) |
+|---|---|---|---|
+| Kev-Gemma4-E2B, 1 epoch | Gemma-4-E2B | 0.794 | 0.569 |
+| Kev-0.8B base recipe, 2 epochs (`q35-08b/00-trial-0`) | Qwen3.5-0.8B-Base | 0.817 | 0.622 |
+
+```bash
+uv run --extra serve python -m kev.serve --run JohnP1/kev-gemma4-e2b --port 8009
+```
+
+Gemma 4 is attention-only, so on Apple Silicon it runs on PyTorch MPS, not MLX. The train command is in [Training](#training).
+
 ## API
 
 ### `POST /v1/systemone`
@@ -263,6 +278,11 @@ uv run python -m kev.train --suite evals/v7/decision-v7 --base Qwen/Qwen3.5-0.8B
 # the Kev-4B recipe (one H100 via Modal, ~1 h; see below). Swap in Qwen/Qwen3-4B-Base for the previous generation.
 uv run python -m kev.train --suite evals/v7/decision-v7 --base Qwen/Qwen3.5-4B-Base --base_revision 1001bb4d826a52d1f399e183466143f4da7b741b \
     --epochs 2 --lr 5e-5 --batch 4 --accum 2 --dtype bf16 --checkpointing 1 --p_none_pair 0.25 --device cuda --out runs/kev-4b
+
+# Gemma 4 E2B (experimental; one L4 is enough: 14.6 GB peak, ~80 min per epoch). decision-v7 does not pin this base, so
+# its records are admitted under Gemma's tokenizer with the suite's own rule (70 of 12,576 dropped).
+uv run python -m kev.train --suite evals/v7/decision-v7 --base google/gemma-4-E2B --base_revision d29ff6b45f081a49ee2733a859c9c9c2d95d1a6f \
+    --epochs 2 --lr 1e-4 --batch 4 --accum 2 --dtype bf16 --weights_dtype bf16 --checkpointing 1 --p_none_pair 0.25 --device cuda --out runs/kev-gemma4-e2b
 ```
 
 ### Fine-tuning on your own data
